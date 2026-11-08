@@ -22,4 +22,93 @@ button{background:var(--noir);color:var(--jaune);border:0;padding:10px 16px;font
 .case.aujourdhui{background:var(--jaune)}
 .case.fiche{background:var(--jaune)}
 .case.fiche::after{content:"";position:absolute;right:6px;bottom:6px;width:10px;height:10px;border-radius:50%;background:var(--rouge)}
-.fond{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align
+.fond{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:12px}
+.fond.ouvert{display:flex}
+.fenetre{background:var(--blanc);border:4px solid var(--noir);border-radius:10px;padding:16px;width:100%;max-width:420px;max-height:92vh;overflow:auto}
+.fenetre h3{margin:0 0 10px;background:var(--rouge);padding:8px;border-radius:6px}
+label{display:block;font-weight:700;margin:10px 0 4px}
+input{width:100%;padding:10px;font-size:1rem;border:2px solid var(--noir);border-radius:6px}
+.boutons{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.boutons .sup{background:var(--rouge);color:var(--blanc)}
+.boutons .fer{background:var(--blanc);color:var(--noir);border:2px solid var(--noir)}
+</style>
+</head>
+<body>
+<header><img src="logo.png.JPG" alt="DIDF Jeunes"><h1>Souvent fâché et pas facho</h1></header>
+<main>
+<div class="nav"><button id="prec">Précédent</button><h2 id="titre"></h2><button id="suiv">Suivant</button></div>
+<div class="grille" id="grille"></div>
+</main>
+<div class="fond" id="fond">
+ <div class="fenetre">
+  <h3 id="fiche-titre"></h3>
+  <label for="nom">Nom</label><input id="nom" type="text">
+  <label for="lien">Lien</label><input id="lien" type="url" placeholder="https://">
+  <label for="media">Image ou vidéo (lien du fichier)</label><input id="media" type="url" placeholder="https://">
+  <label for="heure">Heure de publication</label><input id="heure" type="time">
+  <label for="retrait">Date de retrait</label><input id="retrait" type="datetime-local">
+  <div class="boutons">
+   <button id="enreg">Enregistrer</button>
+   <button id="supp" class="sup">Supprimer</button>
+   <button id="ferme" class="fer">Fermer</button>
+  </div>
+ </div>
+</div>
+<script>
+let d=new Date();d.setDate(1);
+let dateChoisie="";
+const jours=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const CLE="calendrier-fiches";
+function lire(){try{return JSON.parse(localStorage.getItem(CLE))||{}}catch(e){return {}}}
+function ecrire(f){localStorage.setItem(CLE,JSON.stringify(f))}
+function cle(a,m,j){return a+"-"+String(m+1).padStart(2,"0")+"-"+String(j).padStart(2,"0")}
+function afficher(){
+ const g=document.getElementById("grille");g.innerHTML="";
+ const fiches=lire();
+ document.getElementById("titre").textContent=d.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+ jours.forEach(j=>{g.innerHTML+=`<div class="jour-nom">${j}</div>`});
+ const decal=(d.getDay()+6)%7;
+ for(let i=0;i<decal;i++)g.innerHTML+='<div class="case vide"></div>';
+ const nb=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+ const a=new Date();
+ for(let n=1;n<=nb;n++){
+  const k=cle(d.getFullYear(),d.getMonth(),n);
+  const est=n===a.getDate()&&d.getMonth()===a.getMonth()&&d.getFullYear()===a.getFullYear();
+  const classes="case"+(est?" aujourdhui":"")+(fiches[k]?" fiche":"");
+  g.innerHTML+=`<button class="${classes}" data-k="${k}">${n}</button>`;
+ }
+ g.querySelectorAll("button.case").forEach(b=>{b.onclick=()=>ouvrir(b.dataset.k)});
+}
+function ouvrir(k){
+ dateChoisie=k;
+ const f=lire()[k]||{};
+ document.getElementById("fiche-titre").textContent="Fiche du "+k.split("-").reverse().join("/");
+ document.getElementById("nom").value=f.nom||"";
+ document.getElementById("lien").value=f.lien||"";
+ document.getElementById("media").value=f.media||"";
+ document.getElementById("heure").value=f.heure||"";
+ document.getElementById("retrait").value=f.retrait||"";
+ document.getElementById("fond").classList.add("ouvert");
+}
+function fermer(){document.getElementById("fond").classList.remove("ouvert")}
+document.getElementById("enreg").onclick=()=>{
+ const fiches=lire();
+ fiches[dateChoisie]={
+  nom:document.getElementById("nom").value,
+  lien:document.getElementById("lien").value,
+  media:document.getElementById("media").value,
+  heure:document.getElementById("heure").value,
+  retrait:document.getElementById("retrait").value
+ };
+ ecrire(fiches);fermer();afficher();
+};
+document.getElementById("supp").onclick=()=>{
+ const fiches=lire();delete fiches[dateChoisie];ecrire(fiches);fermer();afficher();
+};
+document.getElementById("ferme").onclick=fermer;
+document.getElementById("prec").onclick=()=>{d.setMonth(d.getMonth()-1);afficher()};
+document.getElementById("suiv").onclick=()=>{d.setMonth(d.getMonth()+1);afficher()};
+afficher();
+</script>
+</body>
+</html>
